@@ -11,24 +11,36 @@ class MoviesController < ApplicationController
   end
 
   def index
-    @movies = Movie.movie(params[:ratings], params[:sort_by])
-    @sort_type = params[:sort_by]
+    options = Movie.selected(params,session)
+    if [:redirect]
+      flash.keep
+      
+      redirect_to(
+        :action => params[:action], :controller => params[:controller],
+        :ratings => options[:ratings], 
+        :sort_by => options[:sort_by]
+        ) 
+    end
+
+    @sort_type = options[:sort_by] 
     @all_ratings = Movie.all_ratings
- 
+    @filter = options[:ratings]
+    @movies = Movie.movies(@filter, options[:sort_by])
+    session[:ratings]= options 
+    session[:sort_by] = options[:sort_by]
   end 
   
-def sort_colum
-  @movies = Movie.all
-end
-
-  def new
-    # default: render 'new' template
-  end
+def sort_colum 
+  @movies = Movie.all 
+end 
   
+  def new
+    # default: render 'new' template 
+  end
   def create
     @movie = Movie.create!(movie_params)
     flash[:notice] = "#{@movie.title} was successfully created."
-    redirect_to movies_path
+    redirect_to movies_path 
   end
 
   def edit
@@ -36,7 +48,7 @@ end
   end
 
   def update
-    @movie = Movie.find params[:id]
+    @movie = Movie.find params[:id]  
     @movie.update_attributes!(movie_params)
     flash[:notice] = "#{@movie.title} was successfully updated."
     redirect_to movie_path(@movie)
@@ -48,4 +60,4 @@ end
     flash[:notice] = "Movie '#{@movie.title}' deleted."
     redirect_to movies_path
   end
-end
+end 
