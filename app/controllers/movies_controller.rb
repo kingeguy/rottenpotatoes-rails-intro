@@ -3,7 +3,9 @@ class MoviesController < ApplicationController
   def movie_params
     params.require(:movie).permit(:title, :rating, :description, :release_date)
   end
-
+ def movies_params
+    params.require(:movie).permit(:title, :rating, :description, :release_date)
+  end
   def show
     id = params[:id] # retrieve movie ID from URI route
     @movie = Movie.find(id) # look up movie by unique ID
@@ -11,29 +13,60 @@ class MoviesController < ApplicationController
   end
 
   def index
-    options = Movie.selected(params,session)
-    if [:redirect]
-      flash.keep
-      
-      redirect_to(
-        :action => params[:action], :controller => params[:controller],
-        :ratings => options[:ratings], 
-        :sort_by => options[:sort_by]
-        ) 
-    end
-
-    @sort_type = options[:sort_by] 
     @all_ratings = Movie.all_ratings
-    @filter = options[:ratings]
-    @movies = Movie.movies(@filter, options[:sort_by])
-    session[:ratings]= options 
-    session[:sort_by] = options[:sort_by]
-  end 
+    
+    redirect = false
+    logger.debug(session.inspect)
+  
+    if params[:sort_by]
+      @sort_by = params[:sort_by]
+      session[:sort_by] = params[:sort_by]
+    elsif
+      session[:sort_by]
+      @sort_by = session[:sort_by]
+      redirect = true
+    else @sort_by = null
+    end
+  
+  if params[:commit] == "Refresh" and params[:ratings].nil?
+    @ratings = nil
+    session[:ratings] = nil
+  elsif params[:ratings]
+    @ratings = params[:ratings]
+    session[:ratings] = params[:ratings]
+  elsif session[:ratings]
+    @ratings = session[:ratings]
+    redirect = true
+  else 
+    @ratings = nil 
+  end
+  
+  if redirect
+    flash.keep
+    redirect_to movies_path :sort_by=>@sort_by, :ratings=>@ratings
+  end
+    
+    if @ratings and @sort_by 
+     # @movies = Movie.where(:rating => @ratings.keys).find(:all, :order => (@sort_by))
+      elsif @ratings
+      @movies = Movie.where(:rating => @ratings.keys)
+      elsif @sort_by
+      @movies = Movie.find(:all, :order => (@sort_by))
+    else 
+      @movie = Movie.all
+    end
+    if !@rattings
+      @rattings = Hash.new
+    end
+ 
+  end
   
 def sort_colum 
-  @movies = Movie.all 
+  @movies = Movies.all 
 end 
-  
+  def show
+    @movies = Movie.All
+  end 
   def new
     # default: render 'new' template 
   end
@@ -53,11 +86,13 @@ end
     flash[:notice] = "#{@movie.title} was successfully updated."
     redirect_to movie_path(@movie)
   end
-
+ 
   def destroy
     @movie = Movie.find(params[:id])
     @movie.destroy
     flash[:notice] = "Movie '#{@movie.title}' deleted."
     redirect_to movies_path
   end
-end 
+  
+end
+ 

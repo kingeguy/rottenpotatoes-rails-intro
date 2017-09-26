@@ -1,4 +1,8 @@
 class Movie < ActiveRecord::Base
+     def self.movies(filter, sort_t)
+        return self.order(sort_t) if not filter
+        self.where(:rating => filter).order(sort_t)
+    end
     def self.movie(filter, sort_t)
         return self.order(sort_t) if not filter
         self.where(:rating => filter).order(sort_t)
